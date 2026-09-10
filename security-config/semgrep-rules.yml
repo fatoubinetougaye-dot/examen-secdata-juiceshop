@@ -1,0 +1,155 @@
+rules:
+
+  # ------------------------------------------------------------------
+  # V1 — Injection SQL par concaténation dans une requête Sequelize
+  # ------------------------------------------------------------------
+  - id: juiceshop-sequelize-raw-query-concat
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Requête SQL construite par interpolation de chaîne. Une entrée utilisateur
+      atteignant sequelize.query() permet une injection SQL (contournement
+      d'authentification, exfiltration de la table Users).
+      Utiliser des requêtes paramétrées : { replacements: { ... } }.
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp: "A03:2021 - Injection"
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: $DB.sequelize.query(`...${...}...`, ...)
+          - pattern: $DB.sequelize.query("..." + $X, ...)
+          - pattern: $DB.query(`...${...}...`, ...)
+
+  # ------------------------------------------------------------------
+  # V2 — XSS : neutralisation du sanitizer Angular
+  # ------------------------------------------------------------------
+  - id: juiceshop-angular-bypass-security-trust
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Appel à bypassSecurityTrust*() : le sanitizer Angular est désactivé et le
+      contenu est injecté tel quel dans le DOM. Toute donnée contrôlée par
+      l'utilisateur devient un vecteur XSS.
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp: "A03:2021 - Injection"
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: $S.bypassSecurityTrustHtml(...)
+          - pattern: $S.bypassSecurityTrustScript(...)
+          - pattern: $S.bypassSecurityTrustResourceUrl(...)
+
+  # ------------------------------------------------------------------
+  # V2bis — Injection DOM directe
+  # ------------------------------------------------------------------
+  - id: juiceshop-dom-sink-innerhtml
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      Écriture directe dans innerHTML / outerHTML / document.write.
+      Préférer textContent ou un moteur de template avec encodage automatique.
+    metadata:
+      cwe: "CWE-79: Cross-site Scripting"
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: $EL.innerHTML = $X
+          - pattern: $EL.outerHTML = $X
+          - pattern: document.write($X)
+
+  # ------------------------------------------------------------------
+  # V4 — Algorithme de hachage cryptographiquement faible
+  # ------------------------------------------------------------------
+  - id: juiceshop-weak-password-hash
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Utilisation de MD5 ou SHA-1 pour dériver un mot de passe. Ces fonctions
+      sont rapides et sans sel : une base compromise est cassée en quelques
+      minutes par attaque par dictionnaire ou rainbow table.
+      Utiliser bcrypt, scrypt ou Argon2id.
+    metadata:
+      cwe: "CWE-916: Use of Password Hash With Insufficient Computational Effort"
+      owasp: "A02:2021 - Cryptographic Failures"
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createHash("md5")
+          - pattern: crypto.createHash("sha1")
+          - pattern: crypto.createHash('md5')
+          - pattern: crypto.createHash('sha1')
+
+  # ------------------------------------------------------------------
+  # V5 — Vérification JWT sans restriction d'algorithme
+  # ------------------------------------------------------------------
+  - id: juiceshop-jwt-unrestricted-algorithm
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      jwt.verify() appelé sans option `algorithms`. Un attaquant peut soumettre
+      un jeton signé avec `alg: none` ou provoquer une confusion RS256/HS256.
+      Épingler explicitement l'algorithme attendu.
+    metadata:
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp: "A07:2021 - Identification and Authentication Failures"
+      confidence: MEDIUM
+    patterns:
+      - pattern: jwt.verify($TOKEN, $KEY)
+      - pattern-not: jwt.verify($TOKEN, $KEY, {..., algorithms: [...], ...})
+
+  # ------------------------------------------------------------------
+  # V6 — Traversée de répertoire dans le serveur de fichiers
+  # ------------------------------------------------------------------
+  - id: juiceshop-path-traversal-sink
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Un paramètre de requête est concaténé dans un chemin de fichier.
+      Risque de traversée de répertoire (../ ou octet nul %00).
+      Normaliser avec path.resolve() puis vérifier l'appartenance au dossier autorisé.
+    metadata:
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
+      owasp: "A01:2021 - Broken Access Control"
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: res.sendFile(path.resolve(..., $REQ.params.$P, ...))
+          - pattern: fs.readFileSync("..." + $REQ.params.$P, ...)
+          - pattern: fs.readFile($X + $REQ.query.$Q, ...)
+
+  # ------------------------------------------------------------------
+  # V7 — Secret codé en dur
+  # ------------------------------------------------------------------
+  - id: juiceshop-hardcoded-secret
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Secret codé en dur dans le code source. Toute personne ayant accès au
+      dépôt (ou à son historique Git) peut le réutiliser.
+      Externaliser vers une variable d'environnement ou un coffre-fort.
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A07:2021 - Identification and Authentication Failures"
+      confidence: MEDIUM
+    pattern-regex: >-
+      (?i)(privateKey|secretKey|apiKey|api_key|password|passwd|token)\s*[:=]\s*['"][^'"\s]{12,}['"]
+
+  # ------------------------------------------------------------------
+  # V8 — CORS permissif
+  # ------------------------------------------------------------------
+  - id: juiceshop-permissive-cors
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      CORS configuré avec une origine générique. Combiné à des identifiants,
+      cela autorise n'importe quel site à consommer l'API au nom de la victime.
+    metadata:
+      cwe: "CWE-942: Permissive Cross-domain Policy with Untrusted Domains"
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: app.use(cors())
+          - pattern: cors({..., origin: "*", ...})
+          - pattern: $RES.header("Access-Control-Allow-Origin", "*")

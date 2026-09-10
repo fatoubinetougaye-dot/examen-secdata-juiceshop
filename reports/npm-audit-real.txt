@@ -1,0 +1,13 @@
+Résultat réel `npm audit` — OWASP Juice Shop v20.2.0 (poste d'évaluation, Node.js 24.19.0)
+Date : 2026-09-10
+
+45 vulnerabilities (3 low, 16 moderate, 19 high, 7 critical)
+
+Paquets critiques notables :
+  - crypto-js  <=4.1.1        (PBKDF2 très affaibli / entropie insuffisante)
+  - decompress *              (Zip Slip, écriture arbitraire de fichiers)
+  - lodash     <=4.17.23      (Prototype Pollution, Command Injection)
+  - marsdb     *              (Command Injection, aucun correctif)
+  - tar        <=7.5.20       (Arbitrary File Write / Path Traversal)
+
+Correctifs : `npm audit fix` (non cassant) ou `npm audit fix --force` (changements cassants).

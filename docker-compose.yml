@@ -1,0 +1,61 @@
+# =====================================================================
+# Environnement d'évaluation - Examen Sécurité des Données
+# Usage :
+#   docker compose up -d juice-shop      -> lance l'application cible
+#   docker compose run --rm semgrep      -> SAST
+#   docker compose run --rm trivy        -> SCA
+#   docker compose run --rm gitleaks     -> Secret Detection
+#   docker compose run --rm zap          -> DAST
+# =====================================================================
+services:
+
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/rest/admin/application-version"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+
+  semgrep:
+    image: semgrep/semgrep:latest
+    volumes:
+      - .:/src
+    working_dir: /src
+    command: >
+      semgrep scan
+      --config=p/javascript --config=p/typescript --config=p/owasp-top-ten
+      --config=/src/security-config/semgrep-rules.yml
+      --json --output=/src/reports/semgrep-report.json --metrics=off /src
+
+  trivy:
+    image: aquasec/trivy:latest
+    volumes:
+      - .:/src
+    command: >
+      fs --scanners vuln,misconfig --format json
+      --output /src/reports/trivy-report.json /src
+
+  gitleaks:
+    image: zricethezav/gitleaks:latest
+    volumes:
+      - .:/repo
+    command: >
+      detect --source=/repo --config=/repo/security-config/gitleaks.toml
+      --report-format=json --report-path=/repo/reports/gitleaks-report.json
+      --redact
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    depends_on:
+      juice-shop:
+        condition: service_healthy
+    volumes:
+      - ./reports:/zap/wrk:rw
+    command: >
+      zap-baseline.py -t http://juice-shop:3000
+      -J zap-report.json -r zap-report.html -I

@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<title>Rapport de sécurité consolidé</title><style>
+body{font-family:Segoe UI,Helvetica,Arial,sans-serif;margin:24px;color:#0f172a;background:#f8fafc}
+h1{font-size:22px;border-bottom:3px solid #0f172a;padding-bottom:8px}
+.meta{font-size:13px;color:#475569;margin-bottom:18px}
+.cards{display:flex;gap:12px;margin:18px 0}
+.card{flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center;font-size:12px}
+.card .n{font-size:28px;font-weight:700}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:13px}
+th{background:#0f172a;color:#fff;text-align:left;padding:8px}
+td{border-bottom:1px solid #e2e8f0;padding:7px;vertical-align:top}
+code{font-size:11px;color:#334155}
+.badge{color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.gate{padding:12px;border-radius:8px;font-weight:700;margin:16px 0}
+</style></head><body>
+<h1>Rapport de sécurité consolidé — OWASP Juice Shop</h1>
+<div class="meta">Build #12 &middot; Commit a1b2c3d &middot; Généré le 09/09/2026 20:49:31<br>
+Contrôles : SAST (Semgrep) &middot; SCA (npm audit + Trivy) &middot;
+Secret Detection (Gitleaks) &middot; DAST (OWASP ZAP)</div>
+<div class="cards"><div class='card'><div class='n' style='color:#7f1d1d'>2</div><div>CRITICAL</div></div><div class='card'><div class='n' style='color:#b91c1c'>2</div><div>HIGH</div></div><div class='card'><div class='n' style='color:#c2410c'>1</div><div>MEDIUM</div></div><div class='card'><div class='n' style='color:#a16207'>0</div><div>LOW</div></div><div class='card'><div class='n' style='color:#334155'>0</div><div>INFO</div></div></div>
+<div class="gate" style="background:#7f1d1d;color:#fff">DÉCISION AUTOMATIQUE : REJECT DEPLOYMENT</div>
+<table><thead><tr><th>Sévérité</th><th>Outil</th><th>Type</th>
+<th>Problème</th><th>Localisation</th><th>CWE</th></tr></thead>
+<tbody><tr><td><span class='badge' style='background:#7f1d1d'>CRITICAL</span></td><td>npm audit</td><td>SCA</td><td>Dépendance vulnérable : sanitize-html</td><td><code>package.json</code></td><td>CWE-79</td></tr><tr><td><span class='badge' style='background:#7f1d1d'>CRITICAL</span></td><td>Gitleaks</td><td>Secret Detection</td><td>Secret exposé : juiceshop-rsa-private-key</td><td><code>lib/insecurity.ts:23</code></td><td>CWE-798</td></tr><tr><td><span class='badge' style='background:#b91c1c'>HIGH</span></td><td>Semgrep</td><td>SAST</td><td>juiceshop-sequelize-raw-query-concat</td><td><code>routes/login.ts:14</code></td><td>CWE-89: SQL Injection</td></tr><tr><td><span class='badge' style='background:#b91c1c'>HIGH</span></td><td>npm audit</td><td>SCA</td><td>Dépendance vulnérable : lodash</td><td><code>package.json</code></td><td>CWE-1321</td></tr><tr><td><span class='badge' style='background:#c2410c'>MEDIUM</span></td><td>OWASP ZAP</td><td>DAST</td><td>Content Security Policy Header Not Set</td><td><code>http://localhost:3000/</code></td><td>CWE-693</td></tr></tbody></table></body></html>

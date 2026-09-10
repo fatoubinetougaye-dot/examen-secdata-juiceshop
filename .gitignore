@@ -1,0 +1,19 @@
+# Application cible clonée par le pipeline (ne pas versionner)
+app/
+
+node_modules/
+dist/
+.tmp/
+*.log
+*.sqlite
+
+# Les rapports générés sont archivés par Jenkins, pas versionnés,
+# à l'exception des exemples de référence conservés dans reports/.
+reports/*.json
+reports/*.html
+!reports/exemple-security-summary.html
+!reports/.gitkeep
+
+.env
+*.pem
+*.key

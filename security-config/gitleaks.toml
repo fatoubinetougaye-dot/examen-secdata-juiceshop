@@ -1,0 +1,65 @@
+title = "Configuration Gitleaks — Examen Sécurité des Données (Juice Shop)"
+
+# Hérite de l'ensemble des règles natives de Gitleaks (AWS, GitHub, Stripe, ...)
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------
+# Règles personnalisées ciblant les secrets propres à Juice Shop
+# ---------------------------------------------------------------------
+
+[[rules]]
+id = "juiceshop-rsa-private-key"
+description = "Clé privée RSA/EC embarquée dans le code (signature des JWT)"
+regex = '''-----BEGIN (RSA|EC|OPENSSH|PGP)? ?PRIVATE KEY( BLOCK)?-----'''
+tags = ["cle-privee", "CWE-798", "critique"]
+keywords = ["PRIVATE KEY"]
+
+[[rules]]
+id = "juiceshop-hmac-secret"
+description = "Secret HMAC / clé de signature codé en dur"
+regex = '''(?i)(hmac|jwt|session|cookie)[_-]?(secret|key)\s*[:=]\s*['"][A-Za-z0-9+/=_\-]{8,}['"]'''
+tags = ["secret", "CWE-798"]
+keywords = ["hmac", "secret", "jwt"]
+
+[[rules]]
+id = "juiceshop-db-credentials"
+description = "Identifiants de base de données en clair"
+regex = '''(?i)(db|database|mysql|postgres|mongo)[_-]?(pass|password|pwd|uri|url)\s*[:=]\s*['"][^'"\s]{6,}['"]'''
+tags = ["base-de-donnees", "CWE-256"]
+keywords = ["password", "mongodb://", "postgres://"]
+
+[[rules]]
+id = "juiceshop-smtp-credentials"
+description = "Identifiants SMTP (notification Jenkins) exposés"
+regex = '''(?i)smtp[_-]?(pass|password|user|auth)\s*[:=]\s*['"][^'"\s]{6,}['"]'''
+tags = ["smtp", "CWE-798"]
+keywords = ["smtp"]
+
+[[rules]]
+id = "unchk-internal-token"
+description = "Jeton interne au format établissement (UNCHK/UCAD)"
+regex = '''(?i)(unchk|ucad|esp)[_-](token|key|secret)[_-][A-Za-z0-9]{16,}'''
+tags = ["interne", "CWE-798"]
+keywords = ["unchk", "ucad"]
+
+# ---------------------------------------------------------------------
+# Réduction des faux positifs (Partie 6 du rapport)
+# ---------------------------------------------------------------------
+
+[allowlist]
+description = "Fichiers de test, jeux de données factices et dépendances"
+paths = [
+  '''node_modules/''',
+  '''(.*?)(test|spec|mock|fixture|example)(.*?)\.(js|ts|json)$''',
+  '''(.*?)\.(png|jpe?g|gif|svg|ico|woff2?|ttf|pdf|zip)$''',
+  '''frontend/dist/''',
+  '''reports/''',
+  '''screenshots/''',
+]
+regexes = [
+  '''EXAMPLE_?KEY''',
+  '''your[-_]?(api[-_]?key|secret|token)[-_]?here''',
+  '''CHANGE_?ME''',
+  '''xxxxxxxx''',
+]
